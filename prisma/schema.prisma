@@ -1,0 +1,409 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  ORGANIZER
+  PARTICIPANT
+}
+
+enum Confederation {
+  AFC
+  CAF
+  CONCACAF
+  CONMEBOL
+  OFC
+  UEFA
+}
+
+enum MatchStatus {
+  SCHEDULED
+  IN_PROGRESS
+  FINISHED
+  POSTPONED
+  CANCELED
+}
+
+enum AuditAction {
+  MATCH_RESULT_REGISTERED
+  TOURNAMENT_RECALCULATED
+  POOL_CREATED
+  POOL_UPDATED
+  POOL_DELETED
+  POOL_JOINED
+  POOL_LEFT
+  POOL_MEMBER_REMOVED
+  POOL_OWNER_TRANSFERRED
+  PREDICTION_CREATED
+  PREDICTION_UPDATED
+  PREDICTION_LOCKED_ATTEMPT
+  PREDICTION_QUICK_SAVE
+}
+
+enum PoolStatus {
+  ACTIVE
+  DELETED
+}
+
+enum PoolMemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+  role          Role      @default(PARTICIPANT)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts            Account[]
+  sessions            Session[]
+  passwordResetTokens PasswordResetToken[]
+  auditLogs           AuditLog[]
+  ownedPools          Pool[]               @relation("PoolOwner")
+  poolMemberships     PoolMember[]
+  predictions         Prediction[]
+  predictionHistories PredictionHistory[]  @relation("PredictionHistoryUser")
+  changedPredictions  PredictionHistory[]  @relation("PredictionHistoryChangedBy")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model NationalTeam {
+  id            String         @id @default(cuid())
+  fifaCode      String         @unique
+  name          String
+  slug          String         @unique
+  flagEmoji     String?
+  confederation Confederation?
+  groupId       String?
+  groupPosition Int?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  group                    TournamentGroup?    @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  homeMatches              Match[]             @relation("HomeTeamMatches")
+  awayMatches              Match[]             @relation("AwayTeamMatches")
+  wonMatches               Match[]             @relation("WinnerTeamMatches")
+  lostMatches              Match[]             @relation("LoserTeamMatches")
+  standings                GroupStanding[]
+  predictedWinners         Prediction[]
+  previousPredictedWinners PredictionHistory[]
+
+  @@unique([groupId, groupPosition])
+  @@index([groupId])
+}
+
+model HostCity {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  country   String
+  timezone  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  stadiums Stadium[]
+}
+
+model Stadium {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  cityId    String
+  capacity  Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  city    HostCity @relation(fields: [cityId], references: [id], onDelete: Restrict)
+  matches Match[]
+
+  @@index([cityId])
+}
+
+model TournamentGroup {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  sortOrder Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  teams     NationalTeam[]
+  matches   Match[]
+  standings GroupStanding[]
+}
+
+model TournamentStage {
+  id              String    @id @default(cuid())
+  code            String    @unique
+  name            String
+  sortOrder       Int
+  isKnockout      Boolean   @default(false)
+  startsAt        DateTime?
+  endsAt          DateTime?
+  expectedMatches Int?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  matches Match[]
+}
+
+model Match {
+  id               String      @id @default(cuid())
+  matchNumber      Int         @unique
+  stageId          String
+  groupId          String?
+  stadiumId        String?
+  homeTeamId       String?
+  awayTeamId       String?
+  winnerTeamId     String?
+  loserTeamId      String?
+  homeSlot         String?
+  awaySlot         String?
+  homeQualifier    String?
+  awayQualifier    String?
+  homeScore        Int?
+  awayScore        Int?
+  homePenaltyScore Int?
+  awayPenaltyScore Int?
+  startsAt         DateTime?
+  status           MatchStatus @default(SCHEDULED)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  stage               TournamentStage     @relation(fields: [stageId], references: [id], onDelete: Restrict)
+  group               TournamentGroup?    @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  stadium             Stadium?            @relation(fields: [stadiumId], references: [id], onDelete: SetNull)
+  homeTeam            NationalTeam?       @relation("HomeTeamMatches", fields: [homeTeamId], references: [id], onDelete: SetNull)
+  awayTeam            NationalTeam?       @relation("AwayTeamMatches", fields: [awayTeamId], references: [id], onDelete: SetNull)
+  winnerTeam          NationalTeam?       @relation("WinnerTeamMatches", fields: [winnerTeamId], references: [id], onDelete: SetNull)
+  loserTeam           NationalTeam?       @relation("LoserTeamMatches", fields: [loserTeamId], references: [id], onDelete: SetNull)
+  predictions         Prediction[]
+  predictionHistories PredictionHistory[]
+
+  @@index([stageId])
+  @@index([groupId])
+  @@index([stadiumId])
+  @@index([homeTeamId])
+  @@index([awayTeamId])
+  @@index([winnerTeamId])
+  @@index([loserTeamId])
+  @@index([startsAt])
+}
+
+model GroupStanding {
+  id             String   @id @default(cuid())
+  groupId        String
+  teamId         String
+  played         Int      @default(0)
+  wins           Int      @default(0)
+  draws          Int      @default(0)
+  losses         Int      @default(0)
+  goalsFor       Int      @default(0)
+  goalsAgainst   Int      @default(0)
+  goalDifference Int      @default(0)
+  points         Int      @default(0)
+  position       Int
+  qualifier      String?
+  isQualified    Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  group TournamentGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  team  NationalTeam    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, teamId])
+  @@unique([groupId, position])
+  @@unique([qualifier])
+  @@index([teamId])
+  @@index([points, goalDifference, goalsFor])
+}
+
+model AuditLog {
+  id        String      @id @default(cuid())
+  action    AuditAction
+  entity    String
+  entityId  String?
+  userId    String?
+  metadata  Json?
+  createdAt DateTime    @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([action])
+  @@index([entity, entityId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Pool {
+  id              String     @id @default(cuid())
+  slug            String     @unique
+  name            String
+  description     String?
+  imageUrl        String?
+  passwordHash    String?
+  joinCode        String     @unique
+  isPrivate       Boolean    @default(false)
+  maxParticipants Int?
+  ownerId         String
+  tournamentId    String?
+  status          PoolStatus @default(ACTIVE)
+  deletedAt       DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  owner               User                @relation("PoolOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  members             PoolMember[]
+  scoreRule           ScoreRule?
+  predictions         Prediction[]
+  predictionHistories PredictionHistory[]
+
+  @@index([ownerId])
+  @@index([joinCode])
+  @@index([status])
+}
+
+model PoolMember {
+  id       String         @id @default(cuid())
+  poolId   String
+  userId   String
+  role     PoolMemberRole @default(MEMBER)
+  joinedAt DateTime       @default(now())
+
+  pool Pool @relation(fields: [poolId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([poolId, userId])
+  @@index([userId])
+  @@index([role])
+}
+
+model ScoreRule {
+  id                    String   @id @default(cuid())
+  poolId                String   @unique
+  exactScorePoints      Int      @default(2)
+  winnerPoints          Int      @default(3)
+  knockoutWinnerPoints  Int      @default(1)
+  singleTeamScorePoints Int      @default(1)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  pool Pool @relation(fields: [poolId], references: [id], onDelete: Cascade)
+}
+
+model Prediction {
+  id                    String    @id @default(cuid())
+  poolId                String
+  userId                String
+  matchId               String
+  homeScore             Int
+  awayScore             Int
+  homePenaltyScore      Int?
+  awayPenaltyScore      Int?
+  predictedWinnerTeamId String?
+  lockedAt              DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  pool                Pool                @relation(fields: [poolId], references: [id], onDelete: Cascade)
+  user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  match               Match               @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  predictedWinnerTeam NationalTeam?       @relation(fields: [predictedWinnerTeamId], references: [id], onDelete: SetNull)
+  histories           PredictionHistory[]
+
+  @@unique([poolId, userId, matchId])
+  @@index([userId])
+  @@index([matchId])
+  @@index([predictedWinnerTeamId])
+}
+
+model PredictionHistory {
+  id                       String   @id @default(cuid())
+  predictionId             String
+  poolId                   String
+  userId                   String
+  matchId                  String
+  previousHomeScore        Int
+  previousAwayScore        Int
+  previousHomePenaltyScore Int?
+  previousAwayPenaltyScore Int?
+  previousWinnerTeamId     String?
+  changedAt                DateTime @default(now())
+  changedByUserId          String
+
+  prediction         Prediction    @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+  pool               Pool          @relation(fields: [poolId], references: [id], onDelete: Cascade)
+  user               User          @relation("PredictionHistoryUser", fields: [userId], references: [id], onDelete: Cascade)
+  match              Match         @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  previousWinnerTeam NationalTeam? @relation(fields: [previousWinnerTeamId], references: [id], onDelete: SetNull)
+  changedByUser      User          @relation("PredictionHistoryChangedBy", fields: [changedByUserId], references: [id], onDelete: Cascade)
+
+  @@index([predictionId])
+  @@index([poolId, userId, matchId])
+  @@index([matchId])
+  @@index([changedByUserId])
+  @@index([previousWinnerTeamId])
+}

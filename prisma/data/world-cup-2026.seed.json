@@ -1,0 +1,263 @@
+{
+  "cities": [
+    {
+      "slug": "atlanta",
+      "name": "Atlanta",
+      "country": "Estados Unidos",
+      "timezone": "America/New_York"
+    },
+    {
+      "slug": "boston",
+      "name": "Boston",
+      "country": "Estados Unidos",
+      "timezone": "America/New_York"
+    },
+    {
+      "slug": "dallas",
+      "name": "Dallas",
+      "country": "Estados Unidos",
+      "timezone": "America/Chicago"
+    },
+    {
+      "slug": "guadalajara",
+      "name": "Guadalajara",
+      "country": "Mexico",
+      "timezone": "America/Mexico_City"
+    },
+    {
+      "slug": "houston",
+      "name": "Houston",
+      "country": "Estados Unidos",
+      "timezone": "America/Chicago"
+    },
+    {
+      "slug": "kansas-city",
+      "name": "Kansas City",
+      "country": "Estados Unidos",
+      "timezone": "America/Chicago"
+    },
+    {
+      "slug": "los-angeles",
+      "name": "Los Angeles",
+      "country": "Estados Unidos",
+      "timezone": "America/Los_Angeles"
+    },
+    {
+      "slug": "mexico-city",
+      "name": "Cidade do Mexico",
+      "country": "Mexico",
+      "timezone": "America/Mexico_City"
+    },
+    {
+      "slug": "miami",
+      "name": "Miami",
+      "country": "Estados Unidos",
+      "timezone": "America/New_York"
+    },
+    {
+      "slug": "monterrey",
+      "name": "Monterrey",
+      "country": "Mexico",
+      "timezone": "America/Monterrey"
+    },
+    {
+      "slug": "new-york-new-jersey",
+      "name": "Nova York/Nova Jersey",
+      "country": "Estados Unidos",
+      "timezone": "America/New_York"
+    },
+    {
+      "slug": "philadelphia",
+      "name": "Filadelfia",
+      "country": "Estados Unidos",
+      "timezone": "America/New_York"
+    },
+    {
+      "slug": "san-francisco-bay-area",
+      "name": "Sao Francisco Bay Area",
+      "country": "Estados Unidos",
+      "timezone": "America/Los_Angeles"
+    },
+    {
+      "slug": "seattle",
+      "name": "Seattle",
+      "country": "Estados Unidos",
+      "timezone": "America/Los_Angeles"
+    },
+    {
+      "slug": "toronto",
+      "name": "Toronto",
+      "country": "Canada",
+      "timezone": "America/Toronto"
+    },
+    {
+      "slug": "vancouver",
+      "name": "Vancouver",
+      "country": "Canada",
+      "timezone": "America/Vancouver"
+    }
+  ],
+  "stadiums": [
+    {
+      "slug": "atlanta-stadium",
+      "name": "Atlanta Stadium",
+      "citySlug": "atlanta"
+    },
+    {
+      "slug": "boston-stadium",
+      "name": "Boston Stadium",
+      "citySlug": "boston"
+    },
+    {
+      "slug": "dallas-stadium",
+      "name": "Dallas Stadium",
+      "citySlug": "dallas"
+    },
+    {
+      "slug": "guadalajara-stadium",
+      "name": "Guadalajara Stadium",
+      "citySlug": "guadalajara"
+    },
+    {
+      "slug": "houston-stadium",
+      "name": "Houston Stadium",
+      "citySlug": "houston"
+    },
+    {
+      "slug": "kansas-city-stadium",
+      "name": "Kansas City Stadium",
+      "citySlug": "kansas-city"
+    },
+    {
+      "slug": "los-angeles-stadium",
+      "name": "Los Angeles Stadium",
+      "citySlug": "los-angeles"
+    },
+    {
+      "slug": "mexico-city-stadium",
+      "name": "Mexico City Stadium",
+      "citySlug": "mexico-city"
+    },
+    {
+      "slug": "miami-stadium",
+      "name": "Miami Stadium",
+      "citySlug": "miami"
+    },
+    {
+      "slug": "monterrey-stadium",
+      "name": "Monterrey Stadium",
+      "citySlug": "monterrey"
+    },
+    {
+      "slug": "new-york-new-jersey-stadium",
+      "name": "New York New Jersey Stadium",
+      "citySlug": "new-york-new-jersey"
+    },
+    {
+      "slug": "philadelphia-stadium",
+      "name": "Philadelphia Stadium",
+      "citySlug": "philadelphia"
+    },
+    {
+      "slug": "san-francisco-bay-area-stadium",
+      "name": "San Francisco Bay Area Stadium",
+      "citySlug": "san-francisco-bay-area"
+    },
+    {
+      "slug": "seattle-stadium",
+      "name": "Seattle Stadium",
+      "citySlug": "seattle"
+    },
+    {
+      "slug": "toronto-stadium",
+      "name": "Toronto Stadium",
+      "citySlug": "toronto"
+    },
+    {
+      "slug": "vancouver-stadium",
+      "name": "Vancouver Stadium",
+      "citySlug": "vancouver"
+    }
+  ],
+  "groups": [
+    { "code": "A", "name": "Grupo A", "sortOrder": 1 },
+    { "code": "B", "name": "Grupo B", "sortOrder": 2 },
+    { "code": "C", "name": "Grupo C", "sortOrder": 3 },
+    { "code": "D", "name": "Grupo D", "sortOrder": 4 },
+    { "code": "E", "name": "Grupo E", "sortOrder": 5 },
+    { "code": "F", "name": "Grupo F", "sortOrder": 6 },
+    { "code": "G", "name": "Grupo G", "sortOrder": 7 },
+    { "code": "H", "name": "Grupo H", "sortOrder": 8 },
+    { "code": "I", "name": "Grupo I", "sortOrder": 9 },
+    { "code": "J", "name": "Grupo J", "sortOrder": 10 },
+    { "code": "K", "name": "Grupo K", "sortOrder": 11 },
+    { "code": "L", "name": "Grupo L", "sortOrder": 12 }
+  ],
+  "stages": [
+    {
+      "code": "GROUP_STAGE",
+      "name": "Fase de grupos",
+      "sortOrder": 1,
+      "isKnockout": false,
+      "startsAt": "2026-06-11T00:00:00.000Z",
+      "endsAt": "2026-06-27T23:59:59.000Z",
+      "expectedMatches": 72
+    },
+    {
+      "code": "ROUND_OF_32",
+      "name": "Oitavas preliminares",
+      "sortOrder": 2,
+      "isKnockout": true,
+      "startsAt": "2026-06-28T00:00:00.000Z",
+      "endsAt": "2026-07-03T23:59:59.000Z",
+      "expectedMatches": 16
+    },
+    {
+      "code": "ROUND_OF_16",
+      "name": "Oitavas de final",
+      "sortOrder": 3,
+      "isKnockout": true,
+      "startsAt": "2026-07-04T00:00:00.000Z",
+      "endsAt": "2026-07-07T23:59:59.000Z",
+      "expectedMatches": 8
+    },
+    {
+      "code": "QUARTER_FINALS",
+      "name": "Quartas de final",
+      "sortOrder": 4,
+      "isKnockout": true,
+      "startsAt": "2026-07-09T00:00:00.000Z",
+      "endsAt": "2026-07-11T23:59:59.000Z",
+      "expectedMatches": 4
+    },
+    {
+      "code": "SEMI_FINALS",
+      "name": "Semifinais",
+      "sortOrder": 5,
+      "isKnockout": true,
+      "startsAt": "2026-07-14T00:00:00.000Z",
+      "endsAt": "2026-07-15T23:59:59.000Z",
+      "expectedMatches": 2
+    },
+    {
+      "code": "THIRD_PLACE",
+      "name": "Disputa de terceiro lugar",
+      "sortOrder": 6,
+      "isKnockout": true,
+      "startsAt": "2026-07-18T00:00:00.000Z",
+      "endsAt": "2026-07-18T23:59:59.000Z",
+      "expectedMatches": 1
+    },
+    {
+      "code": "FINAL",
+      "name": "Final",
+      "sortOrder": 7,
+      "isKnockout": true,
+      "startsAt": "2026-07-19T00:00:00.000Z",
+      "endsAt": "2026-07-19T23:59:59.000Z",
+      "expectedMatches": 1
+    }
+  ],
+  "teams": [],
+  "matches": []
+}
