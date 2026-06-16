@@ -86,6 +86,25 @@ describe("joinPool", () => {
     ).rejects.toMatchObject(new PoolServiceError("Senha do bolao invalida", 403, "POOL_PASSWORD_INVALID"));
   });
 
+  it("blocks private pool without password hash", async () => {
+    const { prisma } = createPrismaMock({
+      id: "pool-1",
+      status: "ACTIVE",
+      joinCode: "ABC123",
+      isPrivate: true,
+      passwordHash: null,
+      maxParticipants: null,
+      members: []
+    });
+
+    await expect(
+      joinPool(prisma as never, {
+        joinCode: "ABC123",
+        userId: "user-1"
+      })
+    ).rejects.toMatchObject({ code: "POOL_PASSWORD_INVALID" });
+  });
+
   it("blocks participant limit and duplicate members", async () => {
     const limitMock = createPrismaMock({
       id: "pool-1",

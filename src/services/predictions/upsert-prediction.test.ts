@@ -64,6 +64,24 @@ function createClientMock(options?: {
 }
 
 describe("upsertPrediction", () => {
+  it("uses a transaction when called with PrismaClient", async () => {
+    const tx = createClientMock();
+    const prisma = {
+      $transaction: vi.fn(async (callback) => callback(tx))
+    };
+
+    await upsertPrediction(prisma as never, {
+      poolId: "pool-1",
+      userId: "user-1",
+      matchId: "match-1",
+      data: validPrediction,
+      now: new Date("2026-06-11T18:00:00.000Z")
+    });
+
+    expect(prisma.$transaction).toHaveBeenCalledOnce();
+    expect(tx.prediction.create).toHaveBeenCalledOnce();
+  });
+
   it("creates a prediction before match start", async () => {
     const client = createClientMock();
 

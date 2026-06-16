@@ -16,6 +16,7 @@ export function validatePredictionAgainstMatch(
   match: MatchForPredictionRules
 ) {
   const isDraw = input.homeScore === input.awayScore;
+  const knownTeamIds = [match.homeTeamId, match.awayTeamId].filter(Boolean);
 
   if (match.stage.isKnockout && isDraw && !input.predictedWinnerTeamId) {
     throw new PredictionServiceError(
@@ -29,12 +30,15 @@ export function validatePredictionAgainstMatch(
     return;
   }
 
-  const knownTeamIds = [match.homeTeamId, match.awayTeamId].filter(Boolean);
+  if (knownTeamIds.length < 2) {
+    throw new PredictionServiceError(
+      "Aguarde a definicao das selecoes da partida para informar o vencedor previsto",
+      400,
+      "MATCH_TEAMS_NOT_DEFINED"
+    );
+  }
 
-  if (
-    knownTeamIds.length > 0 &&
-    !knownTeamIds.includes(input.predictedWinnerTeamId)
-  ) {
+  if (!knownTeamIds.includes(input.predictedWinnerTeamId)) {
     throw new PredictionServiceError(
       "O vencedor previsto precisa ser uma das selecoes da partida",
       400,

@@ -47,4 +47,18 @@ describe("validatePredictionAgainstMatch", () => {
       )
     ).toThrow("O vencedor previsto precisa ser uma das selecoes da partida");
   });
+
+  it("rejects predicted winner when knockout teams are not defined", () => {
+    expect(() =>
+      validatePredictionAgainstMatch(
+        { ...basePrediction, predictedWinnerTeamId: "team-home" },
+        {
+          id: "match-4",
+          homeTeamId: null,
+          awayTeamId: null,
+          stage: { isKnockout: true }
+        }
+      )
+    ).toThrow("Aguarde a definicao das selecoes da partida");
+  });
 });

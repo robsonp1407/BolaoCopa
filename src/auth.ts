@@ -8,6 +8,11 @@ import { prisma } from "@/lib/db/prisma";
 import { verifyPassword } from "@/lib/security/password";
 import { loginSchema } from "@/lib/validations/auth";
 
+const googleClientId =
+  process.env.AUTH_GOOGLE_ID ?? process.env.GOOGLE_CLIENT_ID ?? "";
+const googleClientSecret =
+  process.env.AUTH_GOOGLE_SECRET ?? process.env.GOOGLE_CLIENT_SECRET ?? "";
+
 export const authConfig = {
   adapter: PrismaAdapter(prisma),
   trustHost: true,
@@ -19,9 +24,17 @@ export const authConfig = {
   },
   providers: [
     Google({
-      clientId: process.env.GOOGLE_CLIENT_ID ?? process.env.AUTH_GOOGLE_ID,
-      clientSecret:
-        process.env.GOOGLE_CLIENT_SECRET ?? process.env.AUTH_GOOGLE_SECRET
+      clientId: googleClientId,
+      clientSecret: googleClientSecret,
+      authorization: {
+        url: "https://accounts.google.com/o/oauth2/v2/auth",
+        params: {
+          scope: "openid email profile",
+          prompt: "select_account"
+        }
+      },
+      token: "https://oauth2.googleapis.com/token",
+      userinfo: "https://openidconnect.googleapis.com/v1/userinfo"
     }),
     Credentials({
       name: "E-mail e senha",

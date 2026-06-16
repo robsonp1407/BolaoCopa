@@ -119,6 +119,11 @@ export function PredictionsForm({ poolId }: PredictionsFormProps) {
       return;
     }
 
+    if (currentFields.homeScore === null || currentFields.awayScore === null) {
+      setMessage("Informe o placar antes de salvar o palpite");
+      return;
+    }
+
     setIsSaving(true);
     setMessage(null);
 
@@ -420,9 +425,13 @@ function buildInitialFields(items: PredictionItem[]) {
 }
 
 function normalizeFields(fields: PredictionFields) {
+  if (fields.homeScore === null || fields.awayScore === null) {
+    throw new Error("Placar incompleto");
+  }
+
   return {
-    homeScore: fields.homeScore ?? 0,
-    awayScore: fields.awayScore ?? 0,
+    homeScore: fields.homeScore,
+    awayScore: fields.awayScore,
     homePenaltyScore: fields.homePenaltyScore,
     awayPenaltyScore: fields.awayPenaltyScore,
     predictedWinnerTeamId: fields.predictedWinnerTeamId

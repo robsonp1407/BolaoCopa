@@ -16,7 +16,17 @@ export async function updatePool(
     data: UpdatePoolInput;
   }
 ) {
-  const memberRole = await getPoolMemberRole(prisma, input.poolId, input.userId);
+  const [memberRole, currentPool] = await Promise.all([
+    getPoolMemberRole(prisma, input.poolId, input.userId),
+    prisma.pool.findUnique({
+      where: { id: input.poolId },
+      select: { id: true, isPrivate: true, passwordHash: true, status: true }
+    })
+  ]);
+
+  if (!currentPool || currentPool.status !== "ACTIVE") {
+    throw new PoolServiceError("Bolao nao encontrado", 404, "POOL_NOT_FOUND");
+  }
 
   if (!canManagePool(input.userRole, memberRole)) {
     throw new PoolServiceError("Acesso negado", 403, "POOL_FORBIDDEN");
@@ -28,6 +38,18 @@ export async function updatePool(
       : input.data.password
         ? await hashPassword(input.data.password)
         : null;
+
+  const finalIsPrivate = input.data.isPrivate ?? currentPool.isPrivate;
+  const finalPasswordHash =
+    passwordHash === undefined ? currentPool.passwordHash : passwordHash;
+
+  if (finalIsPrivate && !finalPasswordHash) {
+    throw new PoolServiceError(
+      "Bolao privado precisa de senha",
+      400,
+      "POOL_PRIVATE_PASSWORD_REQUIRED"
+    );
+  }
 
   const pool = await prisma.pool.update({
     where: { id: input.poolId },

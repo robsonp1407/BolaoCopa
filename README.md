@@ -63,7 +63,34 @@ Fase 5 implementa palpites:
 - Tela minima para preenchimento em `/pools/:poolId/predictions`.
 - Auditoria dos eventos de palpite.
 
-Ainda nao foram implementados ranking, calculo de pontuacao ou WhatsApp.
+Fase 6 implementa pontuacao:
+
+- Calculo puro de pontos por palpite comparado com o resultado oficial.
+- Historico de pontos por usuario, partida e bolao.
+- Subtotais persistidos para auditoria e criterios futuros de desempate.
+- Recalculo idempotente quando um resultado oficial e registrado ou corrigido.
+- Endpoint administrativo para reprocessar pontos de uma partida.
+
+Fase 7 implementa rankings por snapshot:
+
+- Ranking geral do bolao.
+- Ranking por rodada da fase de grupos.
+- Ranking por fase eliminatoria.
+- Desempate por placares exatos, resultados corretos e palpite mais antigo.
+- Atualizacao atomica de `RankingSnapshot` junto do recalculo de pontos.
+
+Etapa de UI operacional:
+
+- Dashboard autenticado com atalhos para boloes, palpites, ranking e area admin.
+- Navegacao global ajustada conforme autenticacao e papel do usuario.
+- Tela `/pools` para entrar em bolao por codigo, criar bolao quando permitido e listar boloes visiveis.
+- Tela `/pools/:poolId` com detalhes, membros, codigo de convite e regra de pontuacao.
+- Acoes operacionais em `/pools/:poolId`: editar dados do bolao, sair, excluir, remover membro e transferir propriedade quando o papel permitir.
+- Tela `/pools/:poolId/rankings` lendo `RankingSnapshot`.
+- Tela `/admin` minima para ADMIN registrar resultados oficiais, reprocessar o torneio e consultar auditoria recente.
+- A tela existente de palpites foi preservada e recebeu link de retorno ao bolao.
+
+Ainda nao foram implementados WhatsApp ou painel admin avancado.
 
 ## Requisitos locais
 
@@ -90,8 +117,8 @@ cp .env.example .env
 3. Configure as variaveis:
 
 ```env
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/bolao_copa_2026?schema=public"
-SHADOW_DATABASE_URL="postgresql://postgres:postgres@localhost:5432/bolao_copa_2026_shadow?schema=public"
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/bolao_copa_2026?schema=public&sslmode=disable"
+SHADOW_DATABASE_URL="postgresql://postgres:postgres@localhost:5432/bolao_copa_2026_shadow?schema=public&sslmode=disable"
 AUTH_SECRET="gere-um-segredo-forte"
 AUTH_URL="http://localhost:3000"
 GOOGLE_CLIENT_ID=""
@@ -138,8 +165,8 @@ O banco `bolao_copa_2026` e usado pela aplicacao. O banco `bolao_copa_2026_shado
 Se o seu PostgreSQL estiver na porta `5433`, ajuste o `.env` assim:
 
 ```env
-DATABASE_URL="postgresql://usuario:senha@localhost:5433/bolaocopa_producao?schema=public"
-SHADOW_DATABASE_URL="postgresql://usuario:senha@localhost:5433/bolaocopa_shadow?schema=public"
+DATABASE_URL="postgresql://usuario:senha@localhost:5433/bolaocopa_producao?schema=public&sslmode=disable"
+SHADOW_DATABASE_URL="postgresql://usuario:senha@localhost:5433/bolaocopa_shadow?schema=public&sslmode=disable"
 ```
 
 Depois execute:
@@ -386,6 +413,7 @@ PATCH /api/pools/:id
 ```
 
 Somente `OWNER`, membro `ADMIN` do bolao ou `ADMIN` global.
+Ao marcar um bolao como privado, ele precisa manter ou receber uma senha valida.
 
 ### Remover bolao
 
@@ -431,7 +459,7 @@ O novo proprietario precisa ser membro do bolao.
 }
 ```
 
-Essas regras sao apenas armazenadas na Fase 4. Calculo de pontuacao e rankings ficam para fases futuras.
+Essas regras sao armazenadas por bolao e usadas pelo calculo de pontuacao.
 
 ## Palpites
 
@@ -529,6 +557,183 @@ http://localhost:3000/pools/:poolId/predictions
 
 A tela lista jogos agrupados por fase e data, mostra pendencias, bloqueios e permite salvar individualmente ou em lote.
 
+### Entrada retroativa de palpites
+
+Funcionalidade emergencial para registrar, por um `ADMIN`, palpites feitos fora do sistema para jogos ja iniciados ou finalizados.
+
+Endpoint:
+
+```http
+POST /api/admin/retroactive-guess
+```
+
+Somente `ADMIN` pode acessar. Usuarios `ORGANIZER` e `PARTICIPANT` recebem `403 Forbidden`.
+
+Payload:
+
+```json
+{
+  "user_id": "id-do-participante",
+  "pool_id": "id-do-bolao",
+  "match_id": "id-do-jogo",
+  "home_score": 2,
+  "away_score": 1
+}
+```
+
+Fluxo executado em transacao Prisma:
+
+1. Confirma que o participante pertence ao bolao.
+2. Ignora a trava temporal apenas para a operacao administrativa.
+3. Cria ou atualiza `Prediction`.
+4. Grava `PredictionHistory` com `changedByUserId` do admin.
+5. Se o jogo ja tiver resultado oficial, recalcula o `PointsHistory` desse palpite e atualiza snapshots de ranking do bolao.
+6. Grava `AuditLog` com `PREDICTION_RETROACTIVE_UPSERT`, admin executor, participante afetado, payload e estado anterior quando houver.
+
+A tela operacional fica em `/admin`, na secao "Entrada retroativa".
+
+## Pontuacao
+
+A Fase 6 adiciona o modelo `PointsHistory`, que registra os pontos de cada usuario em uma partida dentro de um bolao.
+
+Cada registro guarda:
+
+- `resultPoints`;
+- `exactScorePoints`;
+- `knockoutWinnerPoints`;
+- `singleTeamScorePoints`;
+- `totalPoints`.
+
+Esse historico e por partida, usuario e bolao.
+
+### Regra matematica
+
+A pontuacao maxima por partida e 6 pontos:
+
+```text
+resultado correto:          +3
+placar exato:               +2
+vencedor no mata-mata:      +1
+placar de um dos times:     +1
+```
+
+Detalhes:
+
+- Resultado correto significa acertar quem vence ou se o jogo termina empatado.
+- Em mata-mata, quando houver vencedor oficial, acertar o vencedor previsto rende o bonus de 1 ponto.
+- Placar exato exige acertar gols dos dois times.
+- O ponto por placar parcial so entra quando nao houve placar exato.
+- Os valores usam `ScoreRule` do bolao quando existir; os defaults sao `3`, `2`, `1` e `1`.
+
+### Reprocessamento seguro
+
+Sempre que um resultado oficial e registrado por:
+
+```http
+PATCH /api/admin/matches/:id/result
+```
+
+o sistema:
+
+1. Salva o resultado oficial.
+2. Recalcula o chaveamento da Copa.
+3. Remove os pontos antigos daquela partida.
+4. Recalcula os pontos de todos os palpites ativos da partida.
+5. Recria `PointsHistory` dentro da mesma transacao.
+6. Registra auditoria `POINTS_RECALCULATED`.
+
+Se o resultado for corrigido, o mesmo fluxo pode ser executado novamente sem duplicar pontos.
+
+### Reprocessar pontos manualmente
+
+Somente `ADMIN`:
+
+```http
+POST /api/admin/matches/:id/points
+```
+
+Resposta:
+
+```json
+{
+  "ok": true,
+  "pointsRecalculation": {
+    "matchId": "id-da-partida",
+    "processedPredictions": 10,
+    "createdPointsHistories": 10,
+    "deletedPointsHistories": 10
+  }
+}
+```
+
+## Rankings
+
+A Fase 7 adiciona o modelo `RankingSnapshot`. Ele salva fotos calculadas das classificacoes para evitar agregacoes pesadas sobre `PointsHistory` a cada refresh da pagina.
+
+### Correcao operacional aplicada
+
+Se o dashboard retornar erro 500 apos o login com mensagem generica de Server Component, verifique se a migration `20260616090000_add_ranking_snapshot_match_id` foi aplicada. Ela adiciona a coluna opcional `RankingSnapshot.matchId`, usada pelo Prisma Client atual para manter a relacao com `Match`.
+
+Sintoma observado:
+
+```text
+PrismaClientKnownRequestError P2022
+The column `RankingSnapshot.matchId` does not exist in the current database.
+```
+
+Correcao:
+
+```bash
+npx prisma migrate dev
+npx prisma generate
+npm run build
+npm start
+```
+
+Escopos suportados:
+
+- `GENERAL` com `scopeKey=ALL`: ranking geral do bolao.
+- `GROUP_ROUND` com `scopeKey=ROUND_1`, `ROUND_2` ou `ROUND_3`: ranking por rodada da fase de grupos.
+- `KNOCKOUT_STAGE` com `scopeKey` igual ao codigo da fase, como `ROUND_OF_32`, `ROUND_OF_16`, `QUARTER_FINALS`, `SEMI_FINALS`, `THIRD_PLACE` ou `FINAL`.
+
+### Desempate
+
+A ordenacao de `RankingSnapshot` segue:
+
+1. Maior `totalPoints`.
+2. Maior quantidade de placares exatos, derivada de `exactScorePoints > 0`.
+3. Maior quantidade de resultados corretos, derivada de `resultPoints > 0`.
+4. Menor `Prediction.createdAt`, ou seja, quem palpitou primeiro tem vantagem.
+
+### Atualizacao atomica
+
+Quando pontos de uma partida sao recalculados, o sistema tambem recalcula os snapshots dos boloes afetados dentro da mesma transacao Prisma.
+
+O fluxo e:
+
+1. Remove `PointsHistory` antigo da partida.
+2. Recria pontos da partida.
+3. Identifica boloes afetados.
+4. Recalcula `RankingSnapshot` dos escopos afetados.
+5. Registra auditoria de pontuacao.
+
+### Consultar ranking
+
+Usuario precisa estar autenticado e ser membro do bolao.
+
+```http
+GET /api/pools/:id/rankings?scope=GENERAL&scopeKey=ALL&page=1&pageSize=50
+```
+
+Exemplos:
+
+```http
+GET /api/pools/:id/rankings?scope=GROUP_ROUND&scopeKey=ROUND_1
+GET /api/pools/:id/rankings?scope=KNOCKOUT_STAGE&scopeKey=FINAL
+```
+
+O endpoint le apenas `RankingSnapshot`, usando indices compostos por `poolId`, `scope`, `scopeKey` e `position`.
+
 ## Rodando localmente
 
 ```bash
@@ -555,5 +760,5 @@ Ao solicitar redefinicao de senha, o sistema:
 
 ## Proximas fases
 
-A proxima fase deve ser iniciada somente apos aprovacao. As funcionalidades de jogos, boloes, palpites, rankings e WhatsApp ficam fora da Fase 1.
+A proxima fase deve ser iniciada somente apos aprovacao. WhatsApp, painel admin avancado e melhorias de deploy ficam para fases futuras.
 # BolaoCopa

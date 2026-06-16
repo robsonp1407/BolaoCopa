@@ -11,6 +11,12 @@ describe("pool mutation services", () => {
         findUnique: vi.fn(async () => ({ role: "OWNER" }))
       },
       pool: {
+        findUnique: vi.fn(async () => ({
+          id: "pool-1",
+          isPrivate: false,
+          passwordHash: null,
+          status: "ACTIVE"
+        })),
         update: vi.fn(async ({ data }) => ({ id: "pool-1", ...data }))
       },
       auditLog: { create: vi.fn(async () => ({})) }
@@ -29,6 +35,35 @@ describe("pool mutation services", () => {
         data: expect.objectContaining({ action: "POOL_UPDATED" })
       })
     );
+  });
+
+  it("blocks private pool without password on update", async () => {
+    const prisma = {
+      poolMember: {
+        findUnique: vi.fn(async () => ({ role: "OWNER" }))
+      },
+      pool: {
+        findUnique: vi.fn(async () => ({
+          id: "pool-1",
+          isPrivate: false,
+          passwordHash: null,
+          status: "ACTIVE"
+        })),
+        update: vi.fn(async ({ data }) => ({ id: "pool-1", ...data }))
+      },
+      auditLog: { create: vi.fn(async () => ({})) }
+    };
+
+    await expect(
+      updatePool(prisma as never, {
+        poolId: "pool-1",
+        userId: "user-1",
+        userRole: "ORGANIZER",
+        data: { isPrivate: true }
+      })
+    ).rejects.toMatchObject({ code: "POOL_PRIVATE_PASSWORD_REQUIRED" });
+
+    expect(prisma.pool.update).not.toHaveBeenCalled();
   });
 
   it("soft deletes a pool", async () => {

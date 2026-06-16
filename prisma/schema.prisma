@@ -45,6 +45,8 @@ enum AuditAction {
   PREDICTION_UPDATED
   PREDICTION_LOCKED_ATTEMPT
   PREDICTION_QUICK_SAVE
+  PREDICTION_RETROACTIVE_UPSERT
+  POINTS_RECALCULATED
 }
 
 enum PoolStatus {
@@ -56,6 +58,12 @@ enum PoolMemberRole {
   OWNER
   ADMIN
   MEMBER
+}
+
+enum RankingScope {
+  GENERAL
+  GROUP_ROUND
+  KNOCKOUT_STAGE
 }
 
 model User {
@@ -78,6 +86,8 @@ model User {
   predictions         Prediction[]
   predictionHistories PredictionHistory[]  @relation("PredictionHistoryUser")
   changedPredictions  PredictionHistory[]  @relation("PredictionHistoryChangedBy")
+  pointsHistories     PointsHistory[]
+  rankingSnapshots    RankingSnapshot[]
 }
 
 model Account {
@@ -242,6 +252,8 @@ model Match {
   loserTeam           NationalTeam?       @relation("LoserTeamMatches", fields: [loserTeamId], references: [id], onDelete: SetNull)
   predictions         Prediction[]
   predictionHistories PredictionHistory[]
+  pointsHistories     PointsHistory[]
+  rankingSnapshots    RankingSnapshot[]
 
   @@index([stageId])
   @@index([groupId])
@@ -320,6 +332,8 @@ model Pool {
   scoreRule           ScoreRule?
   predictions         Prediction[]
   predictionHistories PredictionHistory[]
+  pointsHistories     PointsHistory[]
+  RankingSnapshot     RankingSnapshot[]
 
   @@index([ownerId])
   @@index([joinCode])
@@ -373,6 +387,7 @@ model Prediction {
   match               Match               @relation(fields: [matchId], references: [id], onDelete: Cascade)
   predictedWinnerTeam NationalTeam?       @relation(fields: [predictedWinnerTeamId], references: [id], onDelete: SetNull)
   histories           PredictionHistory[]
+  pointsHistory       PointsHistory?
 
   @@unique([poolId, userId, matchId])
   @@index([userId])
@@ -406,4 +421,56 @@ model PredictionHistory {
   @@index([matchId])
   @@index([changedByUserId])
   @@index([previousWinnerTeamId])
+}
+
+model PointsHistory {
+  id                    String   @id @default(cuid())
+  poolId                String
+  userId                String
+  matchId               String
+  predictionId          String   @unique
+  resultPoints          Int      @default(0)
+  exactScorePoints      Int      @default(0)
+  knockoutWinnerPoints  Int      @default(0)
+  singleTeamScorePoints Int      @default(0)
+  totalPoints           Int      @default(0)
+  calculatedAt          DateTime @default(now())
+
+  pool       Pool       @relation(fields: [poolId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  match      Match      @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  prediction Prediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+
+  @@unique([poolId, userId, matchId])
+  @@index([poolId])
+  @@index([userId])
+  @@index([matchId])
+  @@index([totalPoints])
+  @@index([calculatedAt])
+}
+
+model RankingSnapshot {
+  id                 String       @id @default(cuid())
+  poolId             String
+  userId             String
+  scope              RankingScope
+  scopeKey           String
+  position           Int
+  totalPoints        Int          @default(0)
+  exactScoreHits     Int          @default(0)
+  resultHits         Int          @default(0)
+  earliestPrediction DateTime?
+  calculatedAt       DateTime     @default(now())
+
+  pool    Pool    @relation(fields: [poolId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Match   Match?  @relation(fields: [matchId], references: [id])
+  matchId String?
+
+  @@unique([poolId, userId, scope, scopeKey])
+  @@unique([poolId, scope, scopeKey, position])
+  @@index([poolId, scope, scopeKey, position])
+  @@index([poolId, scope, scopeKey, totalPoints, exactScoreHits, resultHits])
+  @@index([userId])
+  @@index([calculatedAt])
 }

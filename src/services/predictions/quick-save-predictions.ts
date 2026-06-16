@@ -20,6 +20,19 @@ export async function quickSavePredictions(
   prisma: PrismaClient,
   input: QuickSaveInput
 ): Promise<Prediction[]> {
+  const duplicatedMatchIds = findDuplicatedMatchIds(
+    input.data.predictions.map((prediction) => prediction.matchId)
+  );
+
+  if (duplicatedMatchIds.length > 0) {
+    throw new PredictionServiceError(
+      "O lote contem palpites duplicados para o mesmo jogo",
+      400,
+      "PREDICTION_BATCH_DUPLICATED_MATCH",
+      { duplicatedMatchIds }
+    );
+  }
+
   const blockedMatchIds: string[] = [];
 
   for (const prediction of input.data.predictions) {
@@ -79,4 +92,19 @@ export async function quickSavePredictions(
 
     return predictions;
   });
+}
+
+function findDuplicatedMatchIds(matchIds: string[]) {
+  const seen = new Set<string>();
+  const duplicated = new Set<string>();
+
+  for (const matchId of matchIds) {
+    if (seen.has(matchId)) {
+      duplicated.add(matchId);
+    }
+
+    seen.add(matchId);
+  }
+
+  return Array.from(duplicated);
 }

@@ -3,6 +3,7 @@ import type { PrismaClient } from "@prisma/client";
 import { createAuditLog } from "./audit";
 import { recalculateTournamentInTransaction } from "./recalculate-tournament";
 import type { MatchResultInput } from "./types";
+import { recalculateMatchPointsInTransaction } from "@/services/scoring/recalculate-match-points";
 
 type RegisterResultInput = MatchResultInput & {
   matchId: string;
@@ -30,6 +31,10 @@ export async function registerMatchResult(
       });
 
       const summary = await recalculateTournamentInTransaction(tx);
+      const pointsSummary = await recalculateMatchPointsInTransaction(tx, {
+        matchId: match.id,
+        userId: input.userId
+      });
 
       await createAuditLog(tx, {
         action: "MATCH_RESULT_REGISTERED",
@@ -42,11 +47,12 @@ export async function registerMatchResult(
           awayScore: input.awayScore,
           homePenaltyScore: input.homePenaltyScore ?? null,
           awayPenaltyScore: input.awayPenaltyScore ?? null,
-          recalculation: summary
+          recalculation: summary,
+          pointsRecalculation: pointsSummary
         }
       });
 
-      return { match, summary };
+      return { match, summary, pointsSummary };
     },
     {
       maxWait: 10000,

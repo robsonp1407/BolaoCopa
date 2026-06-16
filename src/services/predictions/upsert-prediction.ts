@@ -22,6 +22,17 @@ export async function upsertPrediction(
   client: PredictionClient,
   input: UpsertPredictionInput
 ): Promise<Prediction> {
+  if ("$transaction" in client) {
+    return client.$transaction((tx) => upsertPredictionInTransaction(tx, input));
+  }
+
+  return upsertPredictionInTransaction(client, input);
+}
+
+async function upsertPredictionInTransaction(
+  client: PredictionClient,
+  input: UpsertPredictionInput
+): Promise<Prediction> {
   const { match } = await getPredictionContext(client, input);
 
   await assertPredictionIsOpen(client, {

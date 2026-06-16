@@ -43,6 +43,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   return NextResponse.json({
     ok: true,
     matchId: result.match.id,
-    recalculation: result.summary
+    recalculation: result.summary,
+    pointsRecalculation: result.pointsSummary
   });
 }

@@ -61,6 +61,26 @@ function createModelMocks(startsAt: Date) {
 }
 
 describe("quickSavePredictions", () => {
+  it("rejects duplicated match ids before starting transaction", async () => {
+    const client = createQuickClient();
+
+    await expect(
+      quickSavePredictions(client as never, {
+        poolId: "pool-1",
+        userId: "user-1",
+        data: {
+          predictions: [payload.predictions[0], payload.predictions[0]]
+        },
+        now: new Date("2026-06-11T18:00:00.000Z")
+      })
+    ).rejects.toMatchObject({
+      code: "PREDICTION_BATCH_DUPLICATED_MATCH",
+      details: { duplicatedMatchIds: ["match-1"] }
+    });
+
+    expect(client.$transaction).not.toHaveBeenCalled();
+  });
+
   it("saves multiple predictions in a transaction", async () => {
     const client = createQuickClient();
 

@@ -43,7 +43,11 @@ export async function joinPool(
       );
     }
 
-    if (pool.passwordHash) {
+    if (pool.isPrivate || pool.passwordHash) {
+      if (!pool.passwordHash) {
+        throw new PoolServiceError("Senha do bolao invalida", 403, "POOL_PASSWORD_INVALID");
+      }
+
       const passwordMatches =
         input.password &&
         (await verifyPassword(input.password, pool.passwordHash));
