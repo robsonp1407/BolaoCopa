@@ -12,6 +12,7 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "prisma db seed",
+    "deploy:package": "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/package-standalone.ps1",
     "format": "prettier --write ."
   },
   "prisma": {

@@ -742,6 +742,150 @@ npm run dev
 
 Acesse `http://localhost:3000`.
 
+## Deploy compilado via GitHub Actions
+
+Use este fluxo quando o servidor Oracle Cloud nao tiver memoria suficiente para executar `npm run build`.
+O build acontece no runner Linux do GitHub, que gera um pacote standalone compativel com Ubuntu.
+O servidor recebe somente o ZIP pronto, aplica migrations Prisma e reinicia o PM2.
+
+Nao versione `.next-app`, `dist` ou `node_modules` no Git. O artefato compilado fica no GitHub Actions por 14 dias e e enviado ao servidor por SSH.
+
+### 1. O que foi preparado no projeto
+
+- `next.config.mjs` usa `output: "standalone"`;
+- `npm run deploy:package` gera `dist/bolao-copa-standalone.zip`;
+- `.github/workflows/deploy.yml` roda lint, testes, build, publica o artefato e faz deploy em `main`;
+- `scripts/deploy-github-artifact.sh` roda no servidor, descompacta releases versionadas, preserva `.env`, aplica migrations e reinicia PM2.
+
+### 2. Preparar o servidor uma unica vez
+
+No Ubuntu:
+
+```bash
+sudo apt update
+sudo apt install -y unzip curl
+node -v
+npm -v
+sudo npm install -g pm2
+
+sudo mkdir -p /var/www/bolao-copa/shared
+sudo chown -R ubuntu:ubuntu /var/www/bolao-copa
+nano /var/www/bolao-copa/shared/.env
+```
+
+Se `node -v` ou `npm -v` nao existir, instale Node.js antes:
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt install -y nodejs
+```
+
+Exemplo de `/var/www/bolao-copa/shared/.env`:
+
+```env
+DATABASE_URL="postgresql://usuario:senha@localhost:5432/bolao_copa_2026?schema=public"
+AUTH_SECRET="gere-um-segredo-forte"
+AUTH_URL="https://seudominio.com.br"
+NEXT_PUBLIC_APP_URL="https://seudominio.com.br"
+GOOGLE_CLIENT_ID=""
+GOOGLE_CLIENT_SECRET=""
+```
+
+Em producao, o callback do Google OAuth deve apontar para:
+
+```text
+https://seudominio.com.br/api/auth/callback/google
+```
+
+O PostgreSQL precisa existir antes do primeiro deploy:
+
+```sql
+CREATE DATABASE bolao_copa_2026;
+```
+
+### 3. Configurar secrets no GitHub
+
+No repositorio, acesse `Settings > Secrets and variables > Actions`.
+
+Crie os secrets:
+
+```text
+PROD_SERVER_HOST=IP_DO_SERVIDOR
+PROD_SERVER_USER=ubuntu
+PROD_SSH_PRIVATE_KEY=conteudo_da_chave_privada
+```
+
+Crie as variables, se quiser sobrescrever os padroes:
+
+```text
+PROD_APP_DIR=/var/www/bolao-copa
+PROD_BASE_URL=https://seudominio.com.br
+PROD_PM2_NAME=bolao-copa
+PROD_PORT=3000
+```
+
+Se alguma variable nao for criada, o deploy usa os valores padrao acima.
+
+### 4. Fazer deploy
+
+Envie a alteracao para a branch `main`:
+
+```bash
+git push origin main
+```
+
+O GitHub Actions executa:
+
+1. `npm ci`;
+2. `npx prisma generate`;
+3. `npm run lint`;
+4. `npm test`;
+5. `npm run deploy:package`;
+6. upload do artefato;
+7. copia do ZIP para o servidor;
+8. `npx -y prisma@5.22.0 migrate deploy`;
+9. restart/start do PM2;
+10. validacao por `curl` em `PROD_BASE_URL`.
+
+### 5. Nginx
+
+Exemplo de configuracao:
+
+```nginx
+server {
+    listen 80;
+    server_name seudominio.com.br;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+Ative e recarregue:
+
+```bash
+sudo ln -s /etc/nginx/sites-available/bolao-copa /etc/nginx/sites-enabled/bolao-copa
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+### 6. Diagnostico no servidor
+
+```bash
+pm2 status
+pm2 logs bolao-copa --lines 100
+journalctl -u nginx -n 100 --no-pager
+curl -i http://127.0.0.1:3000
+```
+
 ## Qualidade
 
 ```bash

@@ -7,6 +7,8 @@ import { RetroactivePredictionForm } from "@/components/admin/retroactive-predic
 import { prisma } from "@/lib/db/prisma";
 import { canManageOfficialResults } from "@/services/tournament/admin-auth";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminPage() {
   const session = await auth();
 

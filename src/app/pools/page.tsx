@@ -7,6 +7,8 @@ import { JoinPoolForm } from "@/components/pools/join-pool-form";
 import { prisma } from "@/lib/db/prisma";
 import { canCreatePool } from "@/services/pools/permissions";
 
+export const dynamic = "force-dynamic";
+
 export default async function PoolsPage() {
   const session = await auth();
 

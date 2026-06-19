@@ -7,6 +7,8 @@ import { prisma } from "@/lib/db/prisma";
 import { getPoolDetails } from "@/services/pools/get-pools";
 import { canDeletePool, canManagePool } from "@/services/pools/permissions";
 
+export const dynamic = "force-dynamic";
+
 type PoolDetailsPageProps = {
   params: Promise<{ poolId: string }>;
 };

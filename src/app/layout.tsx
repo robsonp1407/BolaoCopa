@@ -9,6 +9,8 @@ export const metadata: Metadata = {
   description: "Fundacao inicial do sistema Bolao Copa 2026"
 };
 
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({
   children
 }: Readonly<{

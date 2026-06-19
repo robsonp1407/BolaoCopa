@@ -1,0 +1,97 @@
+name: Deploy
+
+on:
+  pull_request:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: "22"
+  ARTIFACT_NAME: bolao-copa-standalone
+  ARTIFACT_FILE: dist/bolao-copa-standalone.zip
+
+jobs:
+  quality-package:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Gerar Prisma Client
+        run: npx prisma generate
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Testes
+        run: npm test
+
+      - name: Gerar pacote standalone
+        run: npm run deploy:package
+
+      - name: Publicar artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.ARTIFACT_FILE }}
+          if-no-files-found: error
+          retention-days: 14
+
+  production:
+    needs: quality-package
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Baixar artefato
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: dist
+
+      - name: Enviar pacote para o servidor
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PROD_SERVER_HOST }}
+          username: ${{ secrets.PROD_SERVER_USER }}
+          key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+          source: ${{ env.ARTIFACT_FILE }},scripts/deploy-github-artifact.sh
+          target: /tmp/bolao-copa-deploy
+
+      - name: Deploy no servidor
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          APP_DIR: ${{ vars.PROD_APP_DIR }}
+          BASE_URL: ${{ vars.PROD_BASE_URL }}
+          PM2_NAME: ${{ vars.PROD_PM2_NAME }}
+          PORT: ${{ vars.PROD_PORT }}
+        with:
+          host: ${{ secrets.PROD_SERVER_HOST }}
+          username: ${{ secrets.PROD_SERVER_USER }}
+          key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+          envs: APP_DIR,BASE_URL,PM2_NAME,PORT
+          timeout: 120s
+          command_timeout: 30m
+          script: |
+            set -eu
+            APP_DIR="${APP_DIR:-/var/www/bolao-copa}" \
+              BASE_URL="${BASE_URL:-http://127.0.0.1:3000}" \
+              PM2_NAME="${PM2_NAME:-bolao-copa}" \
+              PORT="${PORT:-3000}" \
+              ARTIFACT_PATH=/tmp/bolao-copa-deploy/dist/bolao-copa-standalone.zip \
+              bash /tmp/bolao-copa-deploy/scripts/deploy-github-artifact.sh

@@ -6,6 +6,8 @@ import { prisma } from "@/lib/db/prisma";
 import { rankingQuerySchema } from "@/lib/validations/ranking";
 import { getPoolRanking } from "@/services/rankings/get-ranking";
 
+export const dynamic = "force-dynamic";
+
 type RankingsPageProps = {
   params: Promise<{ poolId: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;

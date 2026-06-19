@@ -4,6 +4,8 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { PredictionsForm } from "@/components/predictions/predictions-form";
 
+export const dynamic = "force-dynamic";
+
 type PredictionsPageProps = {
   params: Promise<{ poolId: string }>;
 };
