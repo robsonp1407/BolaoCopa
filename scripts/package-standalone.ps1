@@ -47,6 +47,7 @@ if (Test-Path -LiteralPath $publicDir) {
 
 Write-Host "Copiando Prisma e arquivos de referencia..."
 Copy-Item -LiteralPath (Join-Path $root "prisma") -Destination (Join-Path $deployDir "prisma") -Recurse -Force
+Copy-Item -LiteralPath (Join-Path $root "src") -Destination (Join-Path $deployDir "src") -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $root ".env.example") -Destination (Join-Path $deployDir ".env.example") -Force
 Copy-Item -LiteralPath (Join-Path $root "README.md") -Destination (Join-Path $deployDir "README.md") -Force
 

@@ -39,6 +39,7 @@ fi
 
 echo "Copiando Prisma e arquivos de referencia..."
 cp -a "$ROOT_DIR/prisma" "$DEPLOY_DIR/prisma"
+cp -a "$ROOT_DIR/src" "$DEPLOY_DIR/src"
 cp "$ROOT_DIR/.env.example" "$DEPLOY_DIR/.env.example"
 cp "$ROOT_DIR/README.md" "$DEPLOY_DIR/README.md"
 
