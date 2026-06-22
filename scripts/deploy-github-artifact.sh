@@ -61,12 +61,11 @@ if [ "$RUN_MIGRATIONS" = "1" ]; then
   npx -y prisma@5.22.0 migrate deploy
 fi
 
-echo "[deploy] reiniciando PM2: $PM2_NAME"
+echo "[deploy] iniciando PM2: $PM2_NAME"
 if pm2 describe "$PM2_NAME" >/dev/null 2>&1; then
-  PORT="$PORT" pm2 restart "$PM2_NAME" --update-env
-else
-  PORT="$PORT" pm2 start server.js --name "$PM2_NAME" --update-env
+  pm2 delete "$PM2_NAME"
 fi
+PORT="$PORT" NODE_ENV=production pm2 start server.js --name "$PM2_NAME" --update-env
 
 pm2 save
 
