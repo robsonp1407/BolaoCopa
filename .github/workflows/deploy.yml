@@ -38,7 +38,7 @@ jobs:
         run: npm test
 
       - name: Gerar pacote standalone
-        run: npm run deploy:package
+        run: bash scripts/package-standalone.sh
 
       - name: Publicar artefato
         uses: actions/upload-artifact@v4
