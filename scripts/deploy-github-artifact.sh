@@ -9,6 +9,7 @@ ARTIFACT_PATH="${ARTIFACT_PATH:-/tmp/bolao-copa-standalone.zip}"
 PM2_NAME="${PM2_NAME:-bolao-copa}"
 PORT="${PORT:-3000}"
 BASE_URL="${BASE_URL:-http://127.0.0.1:3000}"
+HEALTHCHECK_URL="${HEALTHCHECK_URL:-http://127.0.0.1:$PORT}"
 RUN_MIGRATIONS="${RUN_MIGRATIONS:-1}"
 
 if [ ! -f "$ARTIFACT_PATH" ]; then
@@ -69,7 +70,27 @@ PORT="$PORT" NODE_ENV=production pm2 start server.js --name "$PM2_NAME" --update
 
 pm2 save
 
-echo "[deploy] validando $BASE_URL"
-curl -fsS "$BASE_URL" >/dev/null
+echo "[deploy] validando aplicacao local em $HEALTHCHECK_URL"
+for attempt in $(seq 1 30); do
+  if curl -fsS "$HEALTHCHECK_URL" >/dev/null; then
+    echo "[deploy] aplicacao local respondeu"
+    break
+  fi
+
+  if [ "$attempt" = "30" ]; then
+    echo "[deploy] aplicacao local nao respondeu apos $attempt tentativas"
+    pm2 logs "$PM2_NAME" --lines 80 --nostream
+    exit 1
+  fi
+
+  sleep 2
+done
+
+if [ "$BASE_URL" != "$HEALTHCHECK_URL" ]; then
+  echo "[deploy] aviso: validacao publica configurada em $BASE_URL"
+  if ! curl -fsS "$BASE_URL" >/dev/null; then
+    echo "[deploy] aviso: URL publica ainda nao respondeu. Verifique Nginx/SSL separadamente."
+  fi
+fi
 
 echo "[deploy] concluido"
