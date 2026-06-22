@@ -3,7 +3,6 @@ $ErrorActionPreference = "Stop"
 $root = Resolve-Path (Join-Path $PSScriptRoot "..")
 $buildDir = Join-Path $root ".next-app"
 $standaloneDir = Join-Path $buildDir "standalone"
-$staticDir = Join-Path $buildDir "static"
 $distDir = Join-Path $root "dist"
 $deployDir = Join-Path $distDir "deploy"
 $zipPath = Join-Path $distDir "bolao-copa-standalone.zip"
@@ -30,11 +29,15 @@ New-Item -ItemType Directory -Path $deployDir -Force | Out-Null
 Write-Host "Copiando runtime standalone..."
 Copy-Item -Path (Join-Path $standaloneDir "*") -Destination $deployDir -Recurse -Force
 
-Write-Host "Copiando assets estaticos..."
+Write-Host "Copiando build do Next.js..."
 $deployNextDir = Join-Path $deployDir ".next-app"
-$deployStaticDir = Join-Path $deployNextDir "static"
-New-Item -ItemType Directory -Path $deployStaticDir -Force | Out-Null
-Copy-Item -Path (Join-Path $staticDir "*") -Destination $deployStaticDir -Recurse -Force
+New-Item -ItemType Directory -Path $deployNextDir -Force | Out-Null
+
+Get-ChildItem -LiteralPath $buildDir -Force |
+  Where-Object { $_.Name -notin @("cache", "standalone") } |
+  ForEach-Object {
+    Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $deployNextDir $_.Name) -Recurse -Force
+  }
 
 $publicDir = Join-Path $root "public"
 if (Test-Path -LiteralPath $publicDir) {
