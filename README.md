@@ -238,6 +238,45 @@ Formato basico para selecoes:
 }
 ```
 
+## Cadastro operacional de usuarios Google
+
+Para permitir lancamento administrativo de palpites retroativos, existe um
+script idempotente para cadastrar usuarios que entrarao pelo Google:
+
+```bash
+npm run users:retroactive
+```
+
+Esse comando cadastra ou atualiza os usuarios abaixo com papel `PARTICIPANT`:
+
+- Denise Galvao: `denise.farmacia@gmail.com`
+- Juan Francisco: `juanfrcogalvao@gmail.com`
+- Keila Nara Galvao: `naragalvao08@gmail.com`
+- Marcia Galvao: `marcia.galvaodasilva@gmail.com`
+- Matheus Pavan: `matheusp2903@gmail.com`
+- Vinicius Garcia: `vinigarcia87@gmail.com`
+
+Se os palpites retroativos forem lancados para um bolao especifico, informe
+tambem o codigo de entrada do bolao para criar o vinculo de participante:
+
+```bash
+npm run users:retroactive -- --join-code=CODIGO_DO_BOLAO
+```
+
+Passo a passo recomendado:
+
+1. Confirme que `DATABASE_URL` aponta para o banco correto.
+2. Execute `npx prisma migrate deploy` no servidor antes do cadastro.
+3. Rode `npm run users:retroactive -- --join-code=CODIGO_DO_BOLAO`.
+4. Entre em `/admin` com um usuario `ADMIN`.
+5. Use o formulario "Salvar palpite iniciado" para selecionar bolao, participante e jogo.
+6. Confira a auditoria recente para validar o registro `PREDICTION_RETROACTIVE_UPSERT`.
+
+O login Google usa o PrismaAdapter do Auth.js. Como esses usuarios sao
+pre-cadastrados por e-mail para permitir operacao retroativa antes do primeiro
+login, o provider Google esta configurado para vincular automaticamente a conta
+OAuth ao usuario existente pelo e-mail verificado.
+
 Formato basico para jogos:
 
 ```json
@@ -905,4 +944,5 @@ Ao solicitar redefinicao de senha, o sistema:
 ## Proximas fases
 
 A proxima fase deve ser iniciada somente apos aprovacao. WhatsApp, painel admin avancado e melhorias de deploy ficam para fases futuras.
+
 # BolaoCopa

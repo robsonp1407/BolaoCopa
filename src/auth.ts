@@ -26,6 +26,7 @@ export const authConfig = {
     Google({
       clientId: googleClientId,
       clientSecret: googleClientSecret,
+      allowDangerousEmailAccountLinking: true,
       authorization: {
         url: "https://accounts.google.com/o/oauth2/v2/auth",
         params: {
