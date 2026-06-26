@@ -785,6 +785,20 @@ pontuacao persistida no snapshot:
 Na tela `/pools/:poolId/rankings`, essas informacoes aparecem como resumo acima da tabela e como colunas adicionais
 por participante.
 
+### Consultar resultados computados
+
+A tela `/pools/:poolId/results` exibe, para membros do bolao, as partidas com resultado oficial ja registrado e
+pontuacao computada naquele bolao.
+
+Uma partida aparece nessa tela somente quando:
+
+- `Match.homeScore` e `Match.awayScore` estao preenchidos;
+- existe pelo menos um `PointsHistory` com o mesmo `poolId` e `matchId`.
+
+A tela mostra os totais de partidas computadas, palpites computados e pontos distribuidos, alem do resumo por partida
+com placar oficial, fase, grupo, quantidade de palpites computados, pontos distribuidos e horario do ultimo calculo de
+pontos.
+
 ## Rodando localmente
 
 ```bash

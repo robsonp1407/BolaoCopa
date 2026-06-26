@@ -13,7 +13,9 @@ type PoolDetailsPageProps = {
   params: Promise<{ poolId: string }>;
 };
 
-export default async function PoolDetailsPage({ params }: PoolDetailsPageProps) {
+export default async function PoolDetailsPage({
+  params
+}: PoolDetailsPageProps) {
   const session = await auth();
 
   if (!session?.user.id) {
@@ -52,9 +54,17 @@ export default async function PoolDetailsPage({ params }: PoolDetailsPageProps) 
     notFound();
   }
 
-  const membership = pool.members.find((member) => member.userId === session.user.id);
-  const canManageCurrentPool = canManagePool(session.user.role, membership?.role);
-  const canDeleteCurrentPool = canDeletePool(session.user.role, membership?.role);
+  const membership = pool.members.find(
+    (member) => member.userId === session.user.id
+  );
+  const canManageCurrentPool = canManagePool(
+    session.user.role,
+    membership?.role
+  );
+  const canDeleteCurrentPool = canDeletePool(
+    session.user.role,
+    membership?.role
+  );
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
@@ -83,6 +93,12 @@ export default async function PoolDetailsPage({ params }: PoolDetailsPageProps) 
               >
                 Ranking
               </Link>
+              <Link
+                className="rounded-md border border-brand-700 px-4 py-2 text-sm font-semibold text-brand-700"
+                href={`/pools/${pool.id}/results`}
+              >
+                Resultados
+              </Link>
             </>
           ) : (
             <Link
@@ -96,7 +112,10 @@ export default async function PoolDetailsPage({ params }: PoolDetailsPageProps) 
       </div>
 
       <section className="mt-8 grid gap-4 md:grid-cols-4">
-        <InfoCard label="Visibilidade" value={pool.isPrivate ? "Privado" : "Publico"} />
+        <InfoCard
+          label="Visibilidade"
+          value={pool.isPrivate ? "Privado" : "Publico"}
+        />
         <InfoCard label="Membros" value={String(pool.members.length)} />
         <InfoCard label="Meu papel" value={membership?.role ?? "Nao membro"} />
         <InfoCard label="Dono" value={pool.owner.name ?? pool.owner.email} />
@@ -142,8 +161,14 @@ export default async function PoolDetailsPage({ params }: PoolDetailsPageProps) 
         <div className="rounded-lg border border-stone-200 bg-white p-5 shadow-sm">
           <h2 className="text-xl font-semibold text-ink">Regra de pontuacao</h2>
           <dl className="mt-4 grid gap-3 text-sm">
-            <RuleRow label="Resultado correto" value={pool.scoreRule?.winnerPoints ?? 3} />
-            <RuleRow label="Placar exato" value={pool.scoreRule?.exactScorePoints ?? 2} />
+            <RuleRow
+              label="Resultado correto"
+              value={pool.scoreRule?.winnerPoints ?? 3}
+            />
+            <RuleRow
+              label="Placar exato"
+              value={pool.scoreRule?.exactScorePoints ?? 2}
+            />
             <RuleRow
               label="Vencedor no mata-mata"
               value={pool.scoreRule?.knockoutWinnerPoints ?? 1}
