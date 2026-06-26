@@ -773,6 +773,18 @@ GET /api/pools/:id/rankings?scope=KNOCKOUT_STAGE&scopeKey=FINAL
 
 O endpoint le apenas `RankingSnapshot`, usando indices compostos por `poolId`, `scope`, `scopeKey` e `position`.
 
+A resposta tambem inclui metricas de conferencia calculadas para o escopo solicitado, sem alterar a ordenacao nem a
+pontuacao persistida no snapshot:
+
+- `scopeStats.totalMatches`: total de partidas com resultado oficial consideradas no ranking atual.
+- `scopeStats.totalPredictions`: total de palpites registrados para essas partidas no bolao.
+- `predictionStats.predictionsCount`: total de palpites registrados pelo participante nas partidas do escopo.
+- `predictionStats.singleTeamScoreHits`: palpites que pontuaram por acertar o placar de um dos times.
+- `predictionStats.noPointPredictions`: palpites registrados que nao pontuaram naquela partida.
+
+Na tela `/pools/:poolId/rankings`, essas informacoes aparecem como resumo acima da tabela e como colunas adicionais
+por participante.
+
 ## Rodando localmente
 
 ```bash

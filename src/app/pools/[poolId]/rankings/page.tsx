@@ -53,10 +53,13 @@ export default async function RankingsPage({
           <p className="text-sm font-medium uppercase tracking-wide text-brand-700">
             Ranking
           </p>
-          <h1 className="mt-2 text-3xl font-bold text-ink">{ranking.pool.name}</h1>
+          <h1 className="mt-2 text-3xl font-bold text-ink">
+            {ranking.pool.name}
+          </h1>
           <p className="mt-2 text-sm text-stone-600">
-            Snapshot calculado por pontuacao, placares exatos, resultados corretos e
-            palpite mais antigo.
+            Snapshot calculado por pontuacao, placares exatos, resultados
+            corretos e palpite mais antigo. As metricas adicionais mostram
+            desempenho e volume de palpites no escopo selecionado.
           </p>
         </div>
         <Link
@@ -70,7 +73,8 @@ export default async function RankingsPage({
       <nav className="mt-6 flex flex-wrap gap-2">
         {scopeLinks.map((item) => {
           const active =
-            item.scope === parsedQuery.scope && item.scopeKey === parsedQuery.scopeKey;
+            item.scope === parsedQuery.scope &&
+            item.scopeKey === parsedQuery.scopeKey;
 
           return (
             <Link
@@ -88,34 +92,61 @@ export default async function RankingsPage({
         })}
       </nav>
 
+      <section className="mt-6 grid gap-3 sm:grid-cols-2">
+        <div className="rounded-md border border-stone-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
+            Partidas no ranking
+          </p>
+          <p className="mt-2 text-2xl font-bold text-ink">
+            {ranking.scopeStats.totalMatches}
+          </p>
+        </div>
+        <div className="rounded-md border border-stone-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
+            Palpites registrados
+          </p>
+          <p className="mt-2 text-2xl font-bold text-ink">
+            {ranking.scopeStats.totalPredictions}
+          </p>
+        </div>
+      </section>
+
       <section className="mt-6 overflow-x-auto rounded-lg border border-stone-200 bg-white shadow-sm">
-        <div className="min-w-[720px]">
-          <div className="grid grid-cols-[80px_1fr_120px_120px_120px] gap-3 bg-stone-50 px-4 py-3 text-sm font-semibold text-stone-700">
+        <div className="min-w-[980px]">
+          <div className="grid grid-cols-[70px_1fr_90px_90px_110px_100px_110px_90px] gap-3 bg-stone-50 px-4 py-3 text-sm font-semibold text-stone-700">
             <span>Pos.</span>
             <span>Participante</span>
             <span>Pontos</span>
             <span>Exatos</span>
             <span>Resultados</span>
+            <span>1 placar</span>
+            <span>Sem pontos</span>
+            <span>Palpites</span>
           </div>
           {ranking.ranking.length > 0 ? (
             ranking.ranking.map((entry) => (
               <div
                 key={entry.id}
-                className="grid grid-cols-[80px_1fr_120px_120px_120px] gap-3 border-t border-stone-100 px-4 py-3 text-sm"
+                className="grid grid-cols-[70px_1fr_90px_90px_110px_100px_110px_90px] gap-3 border-t border-stone-100 px-4 py-3 text-sm"
               >
-                <span className="font-semibold text-ink">#{entry.position}</span>
+                <span className="font-semibold text-ink">
+                  #{entry.position}
+                </span>
                 <span className="text-stone-700">
                   {entry.user.name ?? entry.user.email}
                 </span>
                 <span>{entry.totalPoints}</span>
                 <span>{entry.exactScoreHits}</span>
                 <span>{entry.resultHits}</span>
+                <span>{entry.predictionStats.singleTeamScoreHits}</span>
+                <span>{entry.predictionStats.noPointPredictions}</span>
+                <span>{entry.predictionStats.predictionsCount}</span>
               </div>
             ))
           ) : (
             <p className="border-t border-stone-100 px-4 py-6 text-sm text-stone-600">
-              Ainda nao ha snapshot para este ranking. Ele sera preenchido apos o
-              registro de resultados e recalculo de pontos.
+              Ainda nao ha snapshot para este ranking. Ele sera preenchido apos
+              o registro de resultados e recalculo de pontos.
             </p>
           )}
         </div>
